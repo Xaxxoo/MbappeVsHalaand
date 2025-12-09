@@ -21,14 +21,16 @@ contract MbappeVsHalaand is ReentrancyGuard, Ownable, Pausable {
     }
 
     function Halaand(uint256 amount) external nonReentrant whenNotPaused {
-        IERC20(USDC).transferFrom(msg.sender, vault, amount);
+        bool success = IERC20(USDC).transferFrom(msg.sender, vault, amount);
+        require(success, "Transfer failed");
         stakes[msg.sender]["Halaand"] += amount;
         individualStakes[msg.sender]["Halaand"].push(amount);
         totalHalaandStake += amount;
     }
 
     function Mbappe(uint256 amount) external nonReentrant whenNotPaused {
-        IERC20(USDC).transferFrom(msg.sender, vault, amount);
+        bool success = IERC20(USDC).transferFrom(msg.sender, vault, amount);
+        require(success, "Transfer failed");
         stakes[msg.sender]["Mbappe"] += amount;
         individualStakes[msg.sender]["Mbappe"].push(amount);
         totalMbappeStake += amount;
