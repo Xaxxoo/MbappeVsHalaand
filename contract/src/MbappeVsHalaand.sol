@@ -6,41 +6,31 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract MbappeVsHalaand is ReentrancyGuard {
+contract MbappeVsHalaand is ReentrancyGuard, Ownable, Pausable {
     address public vault;
-    address public USDT;
     address public USDC;
     uint256 public totalMbappeStake;
     uint256 public totalHalaandStake;
 
-    mapping(string => mapping(address => uint256)) public stakesBytoken;
     mapping(address => mapping(string => uint256)) public stakes;
+    mapping(address => mapping(string => uint256[])) public individualStakes;
 
-    mapping(address => uint256) public balance;
-    mapping(address => mapping(address => uint256)) public tokenBalance;
-
-    constructor(address _vault, address _usdt, address _usdc) {
+    constructor(address _vault, address _usdc) Ownable(msg.sender) {
         vault = _vault;
-        USDT = _usdt;
         USDC = _usdc;
     }
 
-    function Halaand(uint256 amount, address token) external nonReentrant {
-        require(token == USDT || token == USDC, "Invalid token");
-        address sender = msg.sender;
-        IERC20(token).transferFrom(sender, address(vault), amount);
-        stakesBytoken["Halaand"][token] += amount;
-        stakes[sender]["Halaand"] += amount;
+    function Halaand(uint256 amount) external nonReentrant whenNotPaused {
+        IERC20(USDC).transferFrom(msg.sender, vault, amount);
+        stakes[msg.sender]["Halaand"] += amount;
+        individualStakes[msg.sender]["Halaand"].push(amount);
         totalHalaandStake += amount;
     }
 
-    function Mbappe(uint256 amount, address token) external nonReentrant {
-        require(token == USDT || token == USDC, "Invalid token");
-        address sender = msg.sender;
-
-        IERC20(token).transferFrom(sender, address(vault), amount);       
-        stakesBytoken["Mbappe"][token] += amount;
-        stakes[sender]["Mbappe"] += amount;
+    function Mbappe(uint256 amount) external nonReentrant whenNotPaused {
+        IERC20(USDC).transferFrom(msg.sender, vault, amount);
+        stakes[msg.sender]["Mbappe"] += amount;
+        individualStakes[msg.sender]["Mbappe"].push(amount);
         totalMbappeStake += amount;
     }
 
@@ -48,9 +38,14 @@ contract MbappeVsHalaand is ReentrancyGuard {
         return stakes[user][player];
     }
 
-    function getStakeByToken(string memory player, address token) external view returns (uint256) {
-        return stakesBytoken[player][token];
+    function getIndividualStakes(address user, string memory player) external view returns (uint256[] memory) {
+        return individualStakes[user][player];
     }
 
-  receive() external payable {}
+    function getUserStakes(address user) external view returns (uint256 mbappe, uint256 haaland) {
+        mbappe = stakes[user]["Mbappe"];
+        haaland = stakes[user]["Halaand"];
+    }
+
+    receive() external payable {}
 }
